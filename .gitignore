@@ -1,17 +1,23 @@
-# Generated CSV data
-*.csv
+# Virtual envs
+.venv/
+venv/
 
-# Benchmark outputs
-benchmark_data.csv
-data.csv
-output.csv
-output_custom.csv
-output_stdlib.csv
-
-# Python cache
+# Python caches
 __pycache__/
 *.pyc
+*.pyo
 
-# Virtual environments
-venv/
-.env/
+# pytest cache
+.pytest_cache/
+
+# Editor / OS files
+.DS_Store
+Thumbs.db
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info
+
+# Zip file (submission)
+*.zip
