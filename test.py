@@ -1,7 +1,7 @@
 from custom_csv import CustomCsvReader
 
 def load_records(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open("insurance_data.csv", "r", encoding="utf-8") as f:
         reader = CustomCsvReader(f)
         rows = list(reader)
 
