@@ -1,8 +1,8 @@
-from custom_csv import CustomCsvReader
+from custom_csv import SecureSheetReader
 
 def load_records(file_path):
     with open("insurance_data.csv", "r", encoding="utf-8") as f:
-        reader = CustomCsvReader(f)
+        reader = SecureSheetReader(f)
         rows = list(reader)
 
     headers = rows[0]
