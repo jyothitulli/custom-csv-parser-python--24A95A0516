@@ -1,11 +1,25 @@
 from custom_csv.writer import CustomCsvWriter
 
-rows = [
-    ["Name", "Message"],
-    ["Alice", "Hello"],
-    ["Bob", "Line1\nLine2"],
-    ["He said \"Hello\"", "World"]
-]
+def test_writer_basic(tmp_path):
+    file_path = tmp_path / "output.csv"
 
-with CustomCsvWriter("output.csv") as writer:
-    writer.write_rows(rows)
+    rows = [
+        ["Name", "Message"],
+        ["Alice", "Hello"],
+        ["Bob", "Line1\nLine2"],
+        ['He said "Hello"', "World"]
+    ]
+
+    with CustomCsvWriter(file_path) as writer:
+        writer.write_rows(rows)
+
+    content = file_path.read_text()
+
+    expected = (
+        'Name,Message\n'
+        'Alice,Hello\n'
+        '"Bob","Line1\nLine2"\n'
+        '"He said ""Hello""",World\n'
+    )
+
+    assert content == expected
