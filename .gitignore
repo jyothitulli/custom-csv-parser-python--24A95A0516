@@ -1,28 +1,7 @@
-# Virtual envs
-.venv/
-venv/
-
-# Python caches
 __pycache__/
 *.pyc
 *.pyo
-*.csv
-__pycache__/
-.pytest_cache/
-.env
-
-
-# pytest cache
-.pytest_cache/
-
-# Editor / OS files
-.DS_Store
-Thumbs.db
-
-# Distribution / packaging
-build/
-dist/
-*.egg-info
-
-# Zip file (submission)
-*.zip
+*.pyd
+*.sqlite3
+*.log
+*.env
