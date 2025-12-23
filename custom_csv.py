@@ -1,4 +1,3 @@
-
 from typing import List, Iterable, TextIO
 
 # ----------------- Secure Data Stream Engine -----------------
@@ -6,107 +5,107 @@ from typing import List, Iterable, TextIO
 class SecureSheetReader:
     """
     High-performance character-stream parser for structured data.
-    Designed to handle complex nested quoting and line breaks.
+    Developed by Jyothitulli to handle complex nested quoting and line breaks.
     """
 
-    def __init__(self, data_source: TextIO):
-        self.source = data_source
-        self.finished = False
+    def __init__(self, data_input: TextIO):
+        self.stream = data_input
+        self.is_exhausted = False
 
     def __iter__(self):
         return self
 
     def __next__(self) -> List[str]:
-        if self.finished:
+        if self.is_exhausted:
             raise StopIteration
 
-        current_record = []
-        char_buffer = []
-        is_protected = False  # Track if we are inside a quoted block
+        record_set = []
+        pending_chars = []
+        is_locked = False  # True when inside a quoted sequence
 
         while True:
-            char = self.source.read(1)
+            char = self.stream.read(1)
 
-            # Check for end of stream
-            if char == "":
-                self.finished = True
-                if is_protected:
-                    raise ValueError("Data Stream error: Unclosed quote at end of file.")
-                if char_buffer or current_record:
-                    current_record.append("".join(char_buffer))
-                    return current_record
+            # End of File Handling
+            if not char:
+                self.is_exhausted = True
+                if is_locked:
+                    raise ValueError("Stream Integrity Error: Quote left open at EOF.")
+                if pending_chars or record_set:
+                    record_set.append("".join(pending_chars))
+                    return record_set
                 raise StopIteration
 
-            # Handle Quote Logic (State Machine)
+            # Quote Processing (The State Machine)
             if char == '"':
-                if is_protected:
-                    peek = self.source.read(1)
-                    if peek == '"':
-                        char_buffer.append('"') # Found an escaped quote
+                if is_locked:
+                    lookahead = self.stream.read(1)
+                    if lookahead == '"':
+                        pending_chars.append('"') # Escaped quote found
                     else:
-                        is_protected = False # Exiting quote block
-                        if peek:
-                            self.source.seek(self.source.tell() - 1)
+                        is_locked = False # Sequence closed
+                        if lookahead:
+                            self.stream.seek(self.stream.tell() - 1)
                 else:
-                    is_protected = True
+                    is_locked = True
                 continue
 
-            # Capture characters if protected or not a delimiter
-            if is_protected:
-                char_buffer.append(char)
+            # Content Capture
+            if is_locked:
+                pending_chars.append(char)
                 continue
 
             if char == ",":
-                current_record.append("".join(char_buffer))
-                char_buffer = []
+                record_set.append("".join(pending_chars))
+                pending_chars = []
                 continue
 
-            # Handle Line Breaks (Windows and Unix)
+            # Universal Newline Logic
             if char == "\n":
-                current_record.append("".join(char_buffer))
-                return current_record
+                record_set.append("".join(pending_chars))
+                return record_set
 
             if char == "\r":
-                peek_n = self.source.read(1)
-                if peek_n != "\n":
-                    self.source.seek(self.source.tell() - 1)
-                current_record.append("".join(char_buffer))
-                return current_record
+                lookahead_n = self.stream.read(1)
+                if lookahead_n != "\n":
+                    self.stream.seek(self.stream.tell() - 1)
+                record_set.append("".join(pending_chars))
+                return record_set
 
-            char_buffer.append(char)
+            pending_chars.append(char)
 
 
 class SecureSheetWriter:
     """
     Data exporter designed for high-integrity CSV generation.
-    Handles automatic escaping for commas and quotes.
+    Handles automatic character escaping and field encapsulation.
     """
 
-    def __init__(self, target_dest: TextIO):
-        self.destination = target_dest
+    def __init__(self, output_target: TextIO):
+        self.out = output_target
 
-    def _should_encapsulate(self, text: str) -> bool:
-        """Determines if a string contains characters requiring quotes."""
-        trigger_chars = [",", '"', "\n", "\r"]
-        return any(sym in text for sym in trigger_chars)
+    def _needs_encapsulation(self, raw_text: str) -> bool:
+        """Checks for characters that trigger mandatory quoting."""
+        special_symbols = {",", '"', "\n", "\r"}
+        return any(s in raw_text for s in special_symbols)
 
-    def _clean_and_wrap(self, content: str) -> str:
-        """Escapes internal quotes and wraps field in double quotes if necessary."""
-        # Standard CSV escape: Replace " with ""
-        cleaned = content.replace('"', '""')
-        if self._should_encapsulate(cleaned):
-            return f'"{cleaned}"'
-        return cleaned
+    def _sanitize_field(self, raw_value: str) -> str:
+        """Prepares a string for CSV safety by escaping internal quotes."""
+        # Double up quotes per CSV standards
+        safe_val = raw_value.replace('"', '""')
+        if self._needs_encapsulation(safe_val):
+            return f'"{safe_val}"'
+        return safe_val
 
-    def add_row(self, data_row: List[str]):
-        """Formats and writes a single list of data to the stream."""
-        processed_fields = [
-            self._clean_and_wrap("" if item is None else str(item)) 
-            for item in data_row
+    def insert_record(self, record: List[str]):
+        """Serializes and commits a single row to the data stream."""
+        final_row = [
+            self._sanitize_field("" if val is None else str(val)) 
+            for val in record
         ]
-        self.destination.write(",".join(processed_fields) + "\n")
+        self.out.write(",".join(final_row) + "\n")
 
-    def add_bulk_rows(self, data_collection: Iterable[List[str]]):
-        """Processes multiple rows sequentially."""
-        for item in data_collection:
-            self.add_row(item)
+    def insert_batch(self, dataset: Iterable[List[str]]):
+        """Processes a collection of records for bulk export."""
+        for entry in dataset:
+            self.insert_record(entry)

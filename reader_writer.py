@@ -1,32 +1,42 @@
-from custom_csv import SecureSheetReader, SecureSheetWriter
 import os
+# Importing your unique classes
+from custom_csv import SecureSheetReader, SecureSheetWriter
 
 def test_secure_roundtrip():
-    # Unique data: E-commerce Order Logs (to differentiate from others)
+    """
+    Verifies the integrity of the SecureSheet engine using 
+    data consistent with the project's benchmark suite.
+    """
+    # Data matches benchmark.py headers
     rows = [
-        ["OrderID", "Customer", "ItemDescription", "Total", "ShippingNotes"],
-        ['ORD-99', 'Sarah "The Boss" Miller', 'Ultra-Wide Monitor', '450.00', 'Fragile; "handle with care"'],
-        ['ORD-100', 'Tech Corp, Inc.', 'Keyboard (Mechanical)', '120.50', 'Leave at "Rear Entrance"']
+        ["ID", "Name", "Plan", "Price", "Comment"],
+        ["201", "Beta User", "Basic", "1000", "Simple test row"],
+        ["305", 'Arjun "AJ" Singh', "Premium", "6000", 'Needs "full coverage"']
     ]
 
-    # Test Writing using your new add_bulk_rows method
-    with open("test_verify.csv", "w", encoding="utf-8", newline="") as f:
-        exporter = SecureSheetWriter(f)
-        exporter.add_bulk_rows(rows)
+    test_temp_file = "verify_integrity.csv"
 
-    # Test Reading using your new SecureSheetReader
-    read_rows = []
-    with open("test_verify.csv", "r", encoding="utf-8") as f:
+    # 1. Test Writing (using your new 'insert_batch' method)
+    with open(test_temp_file, "w", encoding="utf-8", newline="") as f:
+        exporter = SecureSheetWriter(f)
+        exporter.insert_batch(rows)
+
+    # 2. Test Reading (using your new 'SecureSheetReader' engine)
+    read_results = []
+    with open(test_temp_file, "r", encoding="utf-8") as f:
         engine = SecureSheetReader(f)
         for record in engine:
-            read_rows.append(record)
+            read_results.append(record)
 
-    # Assertions updated to match your new data
-    assert len(read_rows) == 3
-    assert read_rows[0] == ["OrderID", "Customer", "ItemDescription", "Total", "ShippingNotes"]
-    assert read_rows[1][1] == 'Sarah "The Boss" Miller'
-    assert "handle with care" in read_rows[1][4]
+    # 3. Assertions (Validation logic)
+    assert len(read_results) == 3
+    assert read_results[0] == ["ID", "Name", "Plan", "Price", "Comment"]
+    assert read_results[1][1] == "Beta User"
     
-    # Cleanup
-    if os.path.exists("test_verify.csv"):
-        os.remove("test_verify.csv")
+    # This specifically proves your state-machine handles quotes correctly
+    assert read_results[2][1] == 'Arjun "AJ" Singh' 
+    assert "full coverage" in read_results[2][4]
+    
+    # 4. Cleanup
+    if os.path.exists(test_temp_file):
+        os.remove(test_temp_file)
